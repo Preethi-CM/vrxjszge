@@ -1,365 +1,253 @@
-# WindLens - historical UK wind forecast intelligence
+# WindLens — historical UK wind forecast intelligence
 
-A React + Python/FastAPI web application for exploring historical UK wind forecasts with Elexon BMRS data. It answers:
+React + Python/FastAPI assessment implementation for historical UK wind-generation forecast analysis. Uses Elexon API data or cached real responses, with no synthetic fallback.
 
-1. What wind forecast was available at a chosen decision cut-off?
-2. How did that forecast compare with actual generation?
+## Project Links
 
-The application uses WINDFOR forecasts and FUELHH actuals, with no synthetic-data fallback or invented analytics. It is a time-boxed assessment application, not production trading infrastructure.
+- Demo video — customer presentation and technical walkthrough:
+  https://youtu.be/jh7fBjrg9v8
+- Live portal (Vercel):
+  https://vrxjszge.vercel.app
+- Backend API (Render):
+  https://vrxjszge.onrender.com
+- API documentation:
+  https://vrxjszge.onrender.com/docs
+- Repository:
+  https://github.com/Preethi-CM/vrxjszge
 
-## Live deployment
+The demo video is Unlisted and has a total duration of 9 minutes 58 seconds.
 
-- Live app (Render): https://vrxjszge-1.onrender.com
-- Backend API (Render): https://vrxjszge.onrender.com
-- Backend health endpoint: https://vrxjszge.onrender.com/api/health
-- Interactive API documentation: https://vrxjszge.onrender.com/docs
-- Repository: https://github.com/Preethi-CM/vrxjszge
-- Demo video: Not yet added.
+The frontend is deployed on Vercel; the backend is deployed separately on Render.
 
-The frontend is a Render Static Site. The backend is a Docker-based Render Web Service on a free instance. The backend may take time to respond after inactivity. In-memory jobs, reports and ephemeral cache can be lost on restart; re-run the analysis if necessary.
+## Validation Status
 
-A successful health response checks the backend, not Elexon availability.
+Read VALIDATION.md for recorded test results and remaining checks.
 
-## Full-January validation results
+Initial authoring-tool network failures did not establish whether the deployed application could access historical data. Subsequent deployment checks successfully loaded a single-day exact-alignment scenario and a full-January hourly-alignment scenario.
 
-The project author confirms that full-January validation was completed and passed. The figures below are the author's reported validation results; they are not presented as an independent third-party audit.
+Downloaded CSV and JSON reports were checked for internal consistency:
+- Recalculated MAE, RMSE and bias from exported interval values.
+- Compared monthly CSV and JSON forecast, actual and error values.
+- Checked selected forecast publication times against decision cutoffs.
+- Checked duplicate decision-date/start-time pairs.
+- Checked hourly actual values against their exported half-hour components.
 
-Scenario:
+These checks do not independently verify every upstream Elexon record, forecast cadence semantics, market assumptions, or every UI feature.
 
-- Decision dates: 1-31 January 2026.
-- Decision cut-off: 10:00 Europe/London.
-- Delivery: the following calendar day.
-- Alignment: hourly.
-- Publication lookback: 2 days.
-
-| Measure | Reported result |
-| --- | --- |
-| Matched hourly intervals | 744 of 744 |
-| Matched coverage | 100% |
-| MAE | 2,013 MW |
-| RMSE | 2,505.9 MW |
-| Forecast bias | +1,729.9 MW |
-
-Error is forecast minus actual, so positive bias means overforecasting. These results apply to hourly alignment, not exact alignment on a 30-minute grid. The 31 decision dates cover the following delivery days, including 1 February for the 31 January decision.
-
-The author's earlier validation summary also reported forecasts above actuals in approximately 84% of matched intervals, with 27 January, 11 January and 10 January the worst decision days by MAE. The cause of the overforecasting has not been investigated.
-
-Keep the supporting exports, calculation records and detailed evidence in `VALIDATION.md`. Track assignment requirements separately in `REQUIREMENTS_MAP.md`.
-
-## Deployment checks completed
-
-During deployment, the project author reported completing these checks:
-
-- Ran the application locally with Docker Compose.
-- Loaded the deployed frontend in a browser.
-- Ran an analysis through the deployed frontend and received results.
-- Downloaded a CSV export and checked its data.
-- Completed the JSON report check.
-- Confirmed that full-January validation passed.
-
-Successful deployment and full-January validation do not automatically establish that every automated test, accessibility check, security check or assignment requirement has passed. Record each check separately.
+Automated test and production-build outcomes should be recorded only when their actual command results are available.
 
 ## Features
+- Single decision, custom January range, full-January evaluation.
+- Background jobs with day-by-day progress, exact report snapshots and clear source failures.
+- MAE/RMSE/bias, expected/matched coverage, daily and aggregate metrics.
+- Forecast/actual chart, error chart, biggest misses, searchable/filterable/paginated audit table.
+- Interval provenance dialog, raw source previews, request parameters, diagnostics.
+- JSON and CSV exports; dark/light appearance; responsive layouts, keyboard focus and reduced-motion support.
+- Bounded publication windows, retry/backoff, 24-hour cache of real responses.
 
-- Single decision date, custom January range and full-January evaluation.
-- Editable decision cut-off, alignment policy and publication lookback.
-- Background jobs with day-by-day progress and explicit source failures.
-- MAE, RMSE, forecast bias, expected/matched coverage and daily/aggregate metrics.
-- Forecast-versus-actual chart, error analysis and biggest misses.
-- Searchable and filterable interval audit data.
-- Interval provenance, raw source previews, request parameters and diagnostics.
-- JSON and CSV exports.
-- Dark/light appearance and responsive layouts.
-- Bounded publication windows, retry/backoff and a 24-hour cache of real source responses.
+## Requirements
+Python 3.11+ (3.12 recommended), Node.js 22 LTS and npm. Internet required for installing packages and live Elexon. Windows, macOS or Linux.
 
-## Technology and requirements
-
-- Frontend: React 18, Vite, Recharts and Lucide React.
-- Backend: Python, FastAPI, Uvicorn and HTTPX.
-- Containers: Docker and Docker Compose.
-- Hosting: Render Static Site and Docker Web Service.
-
-For Docker, install and start Docker Desktop. For development without Docker, use Python 3.11+ (3.12 recommended), Node.js 22 and npm. Internet access is required for dependency installation and live Elexon requests. The backend Dockerfile uses Python 3.12.
-
-## Run with Docker
-
-From the repository root, with Docker Desktop running:
-
-```sh
-docker compose -f docker-compose.full.yml up --build
-```
-
-Open:
-
-- Frontend: http://localhost:5173
-- Backend: http://localhost:8000
-- Health: http://localhost:8000/api/health
-- API docs: http://localhost:8000/docs
-
-Stop foreground services with `Ctrl+C`. To remove the Compose containers and network:
-
-```sh
-docker compose -f docker-compose.full.yml down
-```
-
-The full Compose configuration contains:
-
-- `api`: builds from `backend`, exposes port 8000 and mounts `windlens-cache` at `/app/.cache`.
-- `web`: builds from `frontend`, uses `VITE_API_BASE_URL=http://localhost:8000` as a build argument and maps local port 5173 to container port 80.
-
-`docker-compose.yml` is the backend-only alternative.
-
-## Run locally without Docker
-
-### Backend
-
-From the repository root:
-
+## Run locally
+### Terminal 1: backend
+From the extracted project root:
 ```sh
 cd backend
 python -m venv .venv
 ```
-
-Activate on Windows PowerShell:
-
+Windows PowerShell:
 ```powershell
 .\.venv\Scripts\Activate.ps1
 ```
-
-Activate on macOS/Linux:
-
+If activation is restricted, run `.\.venv\Scripts\python.exe` instead of `python` in subsequent commands. Do not alter system security settings unnecessarily.
+macOS/Linux:
 ```sh
 source .venv/bin/activate
 ```
-
-Install dependencies and start the API:
-
+Then:
 ```sh
 python -m pip install -r requirements.txt
 python -m uvicorn app.main:app --reload --port 8000 --workers 1
 ```
+Health: http://localhost:8000/api/health
+Interactive API: http://localhost:8000/docs
 
-If PowerShell blocks activation, use the virtual environment executable directly instead of changing system-wide security settings:
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000 --workers 1
-```
-
-### Frontend
-
-In another terminal, from the repository root:
-
+### Terminal 2: frontend
+From the extracted project root:
 ```sh
 cd frontend
 npm install
 npm run dev
 ```
+Open http://localhost:5173. Start with Single day, January 10, 10:00, exact alignment and 2-day lookback. Click Run analysis. Live API access may take time. Use Full January only after validating one day.
 
-Open http://localhost:5173. Start with 10 January, a 10:00 London cut-off and a two-day lookback. Select the alignment explicitly: hourly alignment is used for the full-January results above; exact alignment is a separate timestamp-matching policy.
-
-Changing controls does not update an already loaded report until `Run analysis` is clicked.
-
-## Tests and production build
-
-Backend, from `backend` with its environment active:
-
+### Commands
+Backend, with environment active:
 ```sh
 python -m pytest -q
 ```
-
-Frontend, from `frontend`:
-
+Frontend:
 ```sh
 npm run build
 npm run preview
 ```
-
-If preview uses a different origin, add that exact origin to `ALLOWED_ORIGINS` and restart the backend. Record actual test outputs in `VALIDATION.md`; analysis validation is distinct from automated-test status.
-
-## Configuration
-
-| Variable | Component | Purpose |
-| --- | --- | --- |
-| `VITE_API_BASE_URL` | Frontend, build time | Backend origin, without an `/api` suffix. |
-| `ALLOWED_ORIGINS` | Backend | Comma-separated frontend origins allowed by CORS. |
-| `PORT` | Backend | Listening port used by the Docker startup command. |
-
-Deployed frontend setting:
-
-```text
-VITE_API_BASE_URL=https://vrxjszge.onrender.com
-```
-
-Backend allowed-origin configuration used during deployment:
-
-```text
-ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://vrxjszge-1.onrender.com
-```
-
-Origins should not include paths or trailing slashes. Keep the allowed list limited to intended clients. Rebuild the frontend after changing its API URL.
+Preview uses a different origin/port; add that exact origin to ALLOWED_ORIGINS and restart backend if using preview.
 
 ## Folder structure
-
-```text
-backend/
-  app/
-    engine.py          Forecast selection, matching and metrics
-    source.py          Elexon requests, retries and cache
-    main.py            API validation, jobs, progress and exports
-    verify_live.py     Live validation helper
-  tests/               Engine and mocked integration tests
-  Dockerfile           Backend image
-frontend/
-  src/
-    main.jsx           React views and user flow
-    style.css          Application styles
-  Dockerfile           Frontend build and nginx image
-  nginx/               nginx configuration
-docker-compose.yml         Backend-only local orchestration
-docker-compose.full.yml    Backend + frontend local orchestration
-VALIDATION.md              Validation evidence and check status
-REQUIREMENTS_MAP.md        Requirement tracking
+```
+backend/app/engine.py      pure selection, matching, conflict and metric logic
+backend/app/source.py      Elexon requests, retries and cache
+backend/app/main.py        validation, jobs, progress, exports
+backend/tests/             engine and mocked integration tests
+frontend/src/main.jsx     React views and user flow
+frontend/src/style.css    responsive dual-theme UI
 ```
 
 ## API
-
-Create an analysis with `POST /api/jobs`:
-
+POST /api/jobs with JSON:
 ```json
-{
-  "start_date": "2026-01-01",
-  "end_date": "2026-01-31",
-  "cutoff_time": "10:00",
-  "alignment": "exact",
-  "lookback_days": 2
-}
+{"start_date":"2026-01-01","end_date":"2026-01-31","cutoff_time":"10:00","alignment":"exact","lookback_days":2}
 ```
-
-This example requests exact alignment, not the hourly scenario used for the reported monthly figures. Consult `/docs` for the running API's accepted alignment values and response schemas.
-
-| Endpoint | Purpose |
-| --- | --- |
-| `POST /api/jobs` | Start an analysis. |
-| `GET /api/jobs/{id}` | Read progress and job status. |
-| `GET /api/jobs/{id}/result` | Retrieve a complete or partial report. |
-| `GET /api/jobs/{id}/export.csv` | Export the loaded report. |
-| `GET /api/health` | Check backend health, not upstream availability. |
+GET /api/jobs/{id}: status and completedDays.
+GET /api/jobs/{id}/result: complete/partial report.
+GET /api/jobs/{id}/export.csv: full loaded report, not only frontend-filtered rows.
+GET /api/health: backend health, NOT proof that Elexon is reachable.
 
 ## Data sources
+https://bmrs.elexon.co.uk/api-documentation/endpoint/datasets/FUELHH/stream
+https://bmrs.elexon.co.uk/api-documentation/endpoint/datasets/WINDFOR/stream
+API base: https://data.elexon.co.uk/bmrs/api/v1
+WINDFOR uses publishDateTimeFrom/To. FUELHH uses settlementDateFrom/To and fuelType=WIND. Do not combine actual settlement filters with publication filters. No API key is configured.
 
-- FUELHH: https://bmrs.elexon.co.uk/api-documentation/endpoint/datasets/FUELHH/stream
-- WINDFOR: https://bmrs.elexon.co.uk/api-documentation/endpoint/datasets/WINDFOR/stream
-- API base: https://data.elexon.co.uk/bmrs/api/v1
+## Explicit assumptions and policies
+1. Decision dates are January 1–31, 2026 in Europe/London. Delivery is the NEXT calendar day. January 31 therefore uses February 1 delivery. All joins are normalized to UTC.
+2. Default cutoff 10:00 is editable and is NOT an asserted official market gate closure. Confirm the required decision rule with the brief/reviewer.
+3. Latest eligible publishTime <= cutoff is selected independently per delivery startTime. Multiple publication snapshots may contribute to one delivery day. This is not a single-snapshot policy.
+4. Forecast search is bounded to lookback_days (1–7; default 2). Missing may mean outside window. Use a wider lookback if justified. Full month with wider windows is slower; cache reduces repeated requests.
+5. Exact mode builds a 30-minute expected grid, compares identical timestamps and does NOT interpolate. If forecast cadence is hourly or otherwise different, half-hour coverage can legitimately be incomplete.
+6. Optional hourly mode is a documented modeling assumption: forecast on the hour represents that hour's average MW. Actual is the mean of both half-hour values; both must exist. Verify source semantics before treating hourly accuracy as authoritative. Off-hour forecasts are counted in diagnostics and not silently shifted.
+7. Actual FUELHH values are average MW over half hours. They are not MWh. This project evaluates MW errors, not costs or traded energy.
+8. Latest returned actual revision is selected, regardless of decision cutoff; actuals are retrospective targets. Missing actual publication timestamps are allowed but not invented.
+9. Same delivery+publication timestamp with identical values is deduplicated. Conflicting latest values are excluded/flagged; no arbitrary maximum-value fallback.
+10. Nonfinite, negative, boolean or null generation values are invalid. Numeric zero is valid.
+11. MAE = sum(abs(error))/matched; RMSE = sqrt(sum(error^2)/matched); bias = sum(error)/matched. error = forecast − actual. Period metrics are calculated across matched intervals, NOT unweighted daily averages.
+12. All requested delivery intervals count toward coverage, including completely failed source days. Metrics can be null. Source failures are explicit and never replaced with fake data.
 
-The integration uses `publishDateTimeFrom` / `publishDateTimeTo` for WINDFOR and `settlementDateFrom` / `settlementDateTo` with `fuelType=WIND` for FUELHH. No Elexon API key is configured.
+### Metrics
 
-Inspect timestamps, cadence, revisions and diagnostics during validation. Successful retrieval alone does not establish semantic correctness.
+For matched interval i, error = forecast minus actual.
 
-## Assumptions and policies
+- MAE: average absolute error.
+- RMSE: square root of the average squared error.
+- Bias: average signed error; positive means overforecasting, negative means underforecasting.
+- Coverage: matched intervals divided by expected intervals, multiplied by 100.
 
-1. Decision dates cover 1-31 January 2026 in Europe/London. Delivery is the next calendar day; a 31 January decision uses 1 February delivery. Joins are normalised to UTC.
-2. The editable default 10:00 cut-off is a scenario assumption, not an asserted official market gate closure.
-3. For each delivery timestamp, select the latest eligible publication at or before the cut-off. Several publications may contribute to one day; this is not necessarily a single-publication snapshot.
-4. Forecast searches are bounded by `lookback_days` (1-7, default 2). Missing records may fall outside that window.
-5. Exact alignment compares identical timestamps on a 30-minute expected grid without interpolation. Hourly forecast timestamps can leave half-hour intervals unmatched. The deployed January 10 scenario showed 24 of 48 intervals matched; do not confuse this with the hourly monthly result.
-6. Hourly alignment treats a forecast on the hour as that hour's average MW and compares it with the mean of both half-hour actuals; both actuals must exist. This is an explicit modelling assumption. Off-hour forecasts are counted in diagnostics, not silently shifted.
-7. FUELHH values are treated as average MW over half hours, not MWh. The application evaluates generation errors, not trading costs.
-8. The latest returned actual revision is the retrospective target. Missing actual publication timestamps are not invented.
-9. Identical records sharing delivery/publication timestamps are deduplicated. Conflicting values are excluded and flagged rather than resolved arbitrarily.
-10. Non-finite, negative, boolean and null generation values are invalid. Numeric zero is valid.
-11. Error = forecast - actual. MAE = mean absolute matched error; RMSE = square root of mean squared matched error; bias = mean matched error. Period metrics use all matched intervals, not an unweighted average of daily metrics.
-12. All requested delivery intervals count toward coverage, including source-failure days. Failures and missing data are reported, never replaced with synthetic observations.
+Accuracy metrics are expressed in MW. Coverage is expressed as a percentage. Missing observations are not treated as zero-error observations.
 
+## Using the portal
+
+1. Open the live portal.
+2. Choose a single day, date range, or full January.
+3. Set the decision cutoff, alignment policy, and publication lookback.
+4. Run the analysis. Full-month processing may take several minutes.
+5. Read coverage and warnings together with the accuracy metrics.
+6. Inspect the forecast-versus-actual chart.
+7. Download CSV or JSON for further review.
+
+## Reproduced validation scenarios
+
+The following figures were checked against the supplied exports during deployment validation. They describe specific scenarios, not guaranteed future results.
+
+| Setting / result | Single-day example | Full-January example |
+| --- | --- | --- |
+| Decision dates | January 10, 2026 | January 1–31, 2026 |
+| Cutoff | 10:00 London | 10:00 London |
+| Lookback | 2 days | 2 days |
+| Alignment | Exact, 30 minutes | Hourly |
+| Expected intervals | 48 | 744 |
+| Matched intervals | 24 | 744 |
+| Coverage | 50% | 100% |
+| MAE | 4,948.5 MW | 2,013.0 MW |
+| RMSE | 5,020.5 MW | 2,505.9 MW |
+| Bias | +4,948.5 MW | +1,729.9 MW |
+
+The single-day export contains 24 `missing_forecast` rows. The monthly export contains 744 matched rows across 31 decision days.
+
+These scenarios use different dates and alignment policies. Their accuracy and coverage must not be interpreted as a controlled before-and-after improvement.
 ## User flow
-
-1. Choose a single date, range or full January.
-2. Set the cut-off, alignment and lookback.
-3. Run analysis and inspect progress or source failures.
-4. Review scenario labels, coverage, metrics and charts.
-5. Inspect interval provenance, raw records and diagnostics.
-6. Export CSV or JSON.
-
-Controls do not alter an already loaded report until another analysis runs. Top-level cards describe the loaded scenario; table/chart filters should not be confused with a different analysis scope.
+1. Define scope/cutoff/alignment/lookback.
+2. Run analysis -> see progress -> inspect loaded scenario and coverage.
+3. Overview -> forecast vs actual -> daily summary.
+4. Accuracy lab -> error chart -> largest misses.
+5. Data explorer -> filter/search -> inspect publication/actual provenance.
+6. Methodology -> source diagnostics/requests -> export CSV/JSON.
+Changing controls does not change an already loaded report until Run analysis is clicked. Day filters affect charts/tables; top metric cards remain full-scenario metrics, as labeled.
 
 ## Live validation helper
-
-From `backend`, with its environment active:
-
+With the backend environment active, from backend:
 ```sh
 python -m app.verify_live --date 2026-01-10
 ```
+This fetches real records and saves local live-validation.json with previews, requests and metrics. It exits with an error if no intervals match. It checks the cutoff mechanically, but you must still inspect cadence and source semantics manually. This helper has NOT been run against the live API in the authoring environment.
 
-The helper fetches real records, writes `live-validation.json` and checks cut-off eligibility mechanically. It does not replace manual source-semantic review. The author's full-January pass confirmation does not, by itself, establish that this particular helper was executed; record its output separately when used.
+## Live acceptance checks (must execute locally)
+- Health check returns ok; backend docs open; frontend has no runtime errors.
+- Run January 10 exact mode. Inspect several raw forecast/actual records in Methodology.
+- Check forecast cadence, actual half-hour cadence, UTC offsets and source semantics.
+- For every selected forecast, verify publishTime <= cutoff. Manually verify one selection and error.
+- Examine diagnostics, missing coverage, invalid records and timestamp conflicts.
+- If considering hourly mode, justify the hourly interpretation with source documentation; never choose it only to hide missing data.
+- Test January 1 and January 31, then run full January.
+- Confirm overall metrics from exported matched errors and coverage across all days.
+- Stop backend/disconnect network and verify visible errors and no fallback.
+- Check mobile, keyboard navigation, dialog close/Escape, exports and themes.
+- Run tests and frontend production build. Record actual results in VALIDATION.md.
 
-## Render deployment
+## Deployment
+Backend must be one process/worker because jobs live in memory. Start `uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1`. Set service root backend; build `pip install -r requirements.txt`. Dockerfile provided. Optional Docker Compose runs backend only; run frontend with npm separately.
+Set backend ALLOWED_ORIGINS to the exact HTTPS frontend origin (comma-separated if several). Set frontend VITE_API_BASE_URL to the backend HTTPS origin, without /api suffix. Build Vite frontend on Vercel with root frontend, build npm run build, output dist. Rebuild after changing frontend environment variables.
+The application is deployed with the frontend on Vercel and the backend on Render. Provider availability and pricing are subject to their current terms. Vercel frontend alone does not run the separately hosted Python service. Keep backend awake while analysing; ephemeral restarts lose jobs.
 
-### Backend: Docker Web Service
+### Deployed environment configuration
 
-- Branch: `main`.
-- Root Directory: `backend`.
-- Dockerfile: `Dockerfile` within that root.
-- Build context: backend root.
-- Instance type used: Free.
-- Environment: configure `ALLOWED_ORIGINS` with the exact frontend HTTPS origin.
-- Leave the Docker Command override empty to use the Dockerfile startup command.
+Frontend:
 
-The Docker startup runs `uvicorn app.main:app` on `0.0.0.0`, uses `${PORT}` and sets `--workers 1`. Deployment logs showed port 10000 and Render reported the service live.
+```dotenv
+VITE_API_BASE_URL=[https://vrxjszge.onrender.com](https://vrxjszge.onrender.com)
+```
 
-Use exactly one process/worker because jobs live in memory. Do not assume the local Compose cache volume exists on the hosted free service.
+Backend:
 
-### Frontend: Static Site
+```dotenv
+ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,[https://vrxjszge-1.onrender.com,[https://vrxjszge.vercel.app](https://vrxjszge.vercel.app)](https://vrxjszge-1.onrender.com,[https://vrxjszge.vercel.app](https://vrxjszge.vercel.app))
+```
 
-- Branch: `main`.
-- Root Directory: `frontend`.
-- Build Command: `npm install && npm run build`.
-- Publish Directory: `dist`.
-- Environment: `VITE_API_BASE_URL=https://vrxjszge.onrender.com`.
+The older Render frontend origin is retained for compatibility.
+The primary portal URL is https://vrxjszge.vercel.app.
 
-After deploying, include `https://vrxjszge-1.onrender.com` in the backend's `ALLOWED_ORIGINS` and apply that configuration change. Rebuild the frontend when changing its API base URL. Update documentation and environment settings if either public origin changes.
+## Deliberate limitations
+Background job state and reports live in memory, expire after two hours when new jobs arrive and are lost on restart. One analysis runs at a time per server. Use one worker. For production use a durable queue, database, authentication and distributed rate limiting. Cache contains public source records, is ephemeral unless mounted, and does not prove historical source completeness. There is no trading execution, price optimization, new forecasting model, or guaranteed network access. The demonstrated deployment checks establish successful scenario execution and export consistency, not comprehensive source validation or production readiness. This is a time-boxed assessment application, not production trading infrastructure.
 
-## Validation record and review checklist
 
-Full-January validation is reported passed. Keep the following evidence and individual check statuses in `VALIDATION.md`; do not label every item complete solely from the monthly pass:
+## AI Assistance Disclosure
 
-- Tested scenario settings, exported rows and independent metric calculations.
-- Health endpoint/API docs checks and browser console/network checks.
-- Manual forecast selection and error examples, including publication <= cut-off.
-- Cadence, UTC offsets, actual revisions and hourly-alignment justification.
-- Missing coverage, invalid-record and timestamp-conflict diagnostics.
-- January 1 and January 31 boundary-case evidence.
-- Source/backend failure behaviour and absence of synthetic fallback.
-- Mobile layout, keyboard navigation, dialog dismissal and theme checks.
-- Backend test output and frontend production-build output.
+Perplexity AI assisted with project development, documentation, deployment guidance, troubleshooting, and export-consistency analysis.
 
-Review assignment-specific hosting, repository anonymity, video and submission requirements separately. If particular providers are mandatory, confirm that Render is acceptable or adjust deployment.
+I performed the deployed portal walkthrough, ran the demonstrated analysis scenarios, downloaded the reports, and recorded the customer and technical demonstration.
 
-## Limitations
+The exported results were checked with AI-assisted calculations. These checks establish internal consistency, not independent verification of every upstream record.
 
-- Job state and reports live in memory, expire after two hours when new jobs arrive and are lost on restart.
-- One analysis runs at a time per server; one worker is required.
-- Cache is ephemeral unless durable storage is explicitly configured.
-- Historical completeness, revisions and upstream availability can affect results.
-- The free backend may pause after inactivity and has limited resources.
-- Production use would need durable jobs, storage, authentication and distributed rate limiting.
-- There is no trade execution, price optimisation or new forecasting model.
+Automated test execution, production-build results, and manual code-review work are documented separately in VALIDATION.md where completed.
 
-Validation of the reported scenario does not guarantee future availability or establish production readiness.
+## Submission Checklist
 
-## AI assistance disclosure
+- [x] Frontend deployed on Vercel.
+- [x] Backend deployed on Render.
+- [x] Single-day analysis results loaded.
+- [x] Full-January hourly analysis results loaded.
+- [x] CSV and JSON exports downloaded and checked.
+- [x] Unlisted YouTube demo uploaded.
+- [x] Video link opened successfully in an Incognito window.
 
-Perplexity AI assisted with project scaffolding and guidance on React UI, Python integration, tests, documentation, Docker, Render deployment and Git workflow. AI also assisted with consolidating and updating this README.
 
-I ran the application using Docker Compose, deployed the frontend and backend, ran a deployed analysis, checked the CSV export and completed the JSON report check. I also confirm that full-January validation was completed and passed; the reported results are documented above.
 
-These statements do not imply that every automated test, security check or line of code was independently audited. Disclose any additional AI tools and personal contributions accurately if applicable.
-
-## Before submission
-
-- Add the actual demo-video link when available.
-- Preserve validation exports, calculations and test evidence.
-- Update `VALIDATION.md` and `REQUIREMENTS_MAP.md` with actual check statuses.
-- Review the assignment video guide and submission form.
-- Respect the assignment's stated 16-hour total effort cap.
-- Confirm repository visibility and anonymity requirements.
-- Keep all claims limited to work actually performed.
